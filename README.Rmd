@@ -44,15 +44,11 @@ sentiment_ratings <- rnorm(n = 1000, mean = 50, sd = 10)
 model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10, sd = 5)
 
 # Estimate performance of the simulated predictions using the MAE performance metric
-x <- mlboot(
+mlboot(
   y_true = sentiment_ratings, 
   y_pred1 = model1_predictions, 
   metric = mean_absolute_error
 )
-x
-
-# Plot the resampling distribution
-hist(x$resamples[, 1], main = "Histogram of MAE in resamples")
 ```
 
 The output shows that the observed performance (MAE) in the simulated sample was 10.063. This is quite close to the perturbation of 10 that we added to create the labels, which is a good sign that our metric function is working properly. The output also shows a 95% confidence interval around the observed sample statistic; thus, we can be quite confident that the "true" population value of the performance metric is between 9.749 and 10.349. Given that our sample of 1000 videos is arbitrary, repeating the experiment with another 1000 videos would likely result in a different performance score - but the confidence interval suggests that the MAE shouldn't vary more than 0.3 or so.
@@ -98,6 +94,19 @@ mlboot(
   cluster = person
 )
 ```
+
+### Visualizing bootstrap results
+
+```{r}
+results <- mlboot(
+  y_true = sentiment_ratings, 
+  y_pred1 = model1_predictions, 
+  metric = mean_absolute_error
+)
+
+hist(results$resamples[, 1])
+```
+
 
 ## Code of Conduct
 

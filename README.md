@@ -57,12 +57,11 @@ sentiment_ratings <- rnorm(n = 1000, mean = 50, sd = 10)
 model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10, sd = 5)
 
 # Estimate performance of the simulated predictions using the MAE performance metric
-x <- mlboot(
+mlboot(
   y_true = sentiment_ratings, 
   y_pred1 = model1_predictions, 
   metric = mean_absolute_error
 )
-x
 #> mlboot Results
 #> ========================================
 #> Sample:          N=1000, Clusters=1
@@ -71,12 +70,7 @@ x
 #> ========================================
 #> y_pred1:         10.063 [9.749, 10.349]
 #> ========================================
-
-# Plot the resampling distribution
-hist(x$resamples[, 1], main = "Histogram of MAE in resamples")
 ```
-
-<img src="man/figures/README-unnamed-chunk-1-1.png" width="100%" />
 
 The output shows that the observed performance (MAE) in the simulated
 sample was 10.063. This is quite close to the perturbation of 10 that we
@@ -181,6 +175,20 @@ mlboot(
 #> Difference:  6.022 [4.544, 7.040]
 #> ========================================
 ```
+
+### Visualizing bootstrap results
+
+``` r
+results <- mlboot(
+  y_true = sentiment_ratings, 
+  y_pred1 = model1_predictions, 
+  metric = mean_absolute_error
+)
+
+hist(results$resamples[, 1])
+```
+
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
 
 ## Code of Conduct
 
