@@ -122,8 +122,8 @@ clusterboot <- function(bs_data, metric, nboot, interval, ...) {
   bs_data <- dplyr::group_by(bs_data, cluster)
   bs_data <- dplyr::summarize(bs_data, 
     n = n(),
-    score1 = metric(y_true, y_pred1, ...),
-    score2 = metric(y_true, y_pred2, ...),
+    score1 = metric(dplyr::pull(y_true), dplyr::pull(y_pred1), ...),
+    score2 = metric(dplyr::pull(y_true), dplyr::pull(y_pred2), ...),
     difference = score2 - score1
   )
   boot::boot(
@@ -152,9 +152,9 @@ singleboot <- function(bs_data, metric, nboot, interval, ...) {
 
 singleboot_stat <- function(data, index, metric, ...) {
   resample <- data[index, ]
-  r_true <- resample[, "y_true"]
-  r_pred1 <- resample[, "y_pred1"]
-  r_pred2 <- resample[, "y_pred2"]
+  r_true <- dplyr::pull(resample[, "y_true"])
+  r_pred1 <- dplyr::pull(resample[, "y_pred1"])
+  r_pred2 <- dplyr::pull(resample[, "y_pred2"])
   score1 <- metric(r_true, r_pred1, ...)
   score2 <- metric(r_true, r_pred2, ...)
   results <- c(score1, score2, score2 - score1)

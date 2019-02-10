@@ -37,8 +37,6 @@ matthews_corrcoef <- function(y_true, y_pred, pos = 1, neg = 0) {
 #' @export
 explained_variance_score <- function(y_true, y_pred) {
   stopifnot(length(y_true) == length(y_pred))
-  stopifnot(is.numeric(y_true))
-  stopifnot(is.numeric(y_pred))
   1 - var(y_true - y_pred) / var(y_true)
 }
 
@@ -46,8 +44,6 @@ explained_variance_score <- function(y_true, y_pred) {
 #' @export
 mean_absolute_error <- function(y_true, y_pred) {
   stopifnot(length(y_true) == length(y_pred))
-  stopifnot(is.numeric(y_true))
-  stopifnot(is.numeric(y_pred))
   mean(abs(y_true - y_pred))
 }
 
@@ -55,8 +51,6 @@ mean_absolute_error <- function(y_true, y_pred) {
 #' @export
 mean_squared_error <- function(y_true, y_pred) {
   stopifnot(length(y_true) == length(y_pred))
-  stopifnot(is.numeric(y_true))
-  stopifnot(is.numeric(y_pred))
   mean((y_true - y_pred)^2)
 }
 
@@ -64,7 +58,5 @@ mean_squared_error <- function(y_true, y_pred) {
 #' @export
 r2_score <- function(y_true, y_pred) {
   stopifnot(length(y_true) == length(y_pred))
-  stopifnot(is.numeric(y_true))
-  stopifnot(is.numeric(y_pred))
   1 - sum((y_true - y_pred)^2) / sum((y_true - mean(y_pred))^2)
 }

@@ -6,6 +6,7 @@ new_s3_list <- function(x, ..., class) {
 }
 
 ## S3 Class Methods
+#' @export
 print.mlboot <- function(x, ...) {
   cat(
     "mlboot Results\n",

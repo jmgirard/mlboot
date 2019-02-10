@@ -11,6 +11,7 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
+set.seed(2019)
 ```
 # mlboot
 
@@ -22,7 +23,51 @@ The goal of *mlboot* is to provide a powerful, flexible, and user-friendly way t
 devtools::install_github("jmgirard/mlboot")
 ```
 
+## Rationale
+
+Bootstrapping is a good choice for estimating the performance of machine learning models because it can be adapted to nearly any type of performance metric, does not make parameteric assumptions about their distributions, and can be quite accurate with relatively little data (e.g., it has been suggested that bootstrapping is appropriate for sample sizes as low as 20, although larger samples obviously confer many benefits). Furthermore, bootstrap confidence intervals provide easily understood information about the precision and reliability of performance estimates and readily extend to statistical comparison.
+
 ## Usage
+
+### Estimating the performance of a single model
+
+We can simulate some simple labels and predictions to demonstrate this. Let's say we have data from 1000 videos and we are trying to predict ratings of each video's perceived sentiment (i.e., positivity-versus-negativity) on a scale from 0 to 100. We train a machine learning model on separate data and then generate predictions for each of the 1000 videos just described. We can calculate the performance of this model as the mean absolute error (MAE) across all 1000 videos. However, it would also be nice to know how precise or reliable this estimate is, i.e., how much it is likely to vary as a function of sampling error. To estimate this precision, we can construct a confidence interval around the observed MAE value using bootstrap resampling.
+
+```{r}
+# Load the mlboot package
+library(mlboot)
+
+# Generate random numbers to simulate trusted labels
+sentiment_ratings <- rnorm(n = 1000, mean = 50, sd = 10)
+
+# Perturb the trusted labels to simulate predictions
+model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10, sd = 5)
+
+# Estimate performance of the simulated predictions using the MAE performance metric
+mlboot(
+  y_true = sentiment_ratings, 
+  y_pred1 = model1_predictions, 
+  metric = mean_absolute_error
+)
+```
+
+The output shows that the observed performance (MAE) in the simulated sample was 10.063. This is quite close to the perturbation of 10 that we added to create the labels, which is a good sign that our metric function is working properly. The output also shows a 95% confidence interval around the observed sample statistic; thus, we can be quite confident that the "true" population value of the performance metric is between 9.749 and 10.349. Given that our sample of 1000 videos is arbitrary, repeating the experiment with another 1000 videos would likely result in a different performance score - but the confidence interval suggests that the MAE shouldn't vary more than 0.3 or so.
+
+### Estimating and comparing the performance of two models
+Now let's say we develop another model that is much more accurate. We can use a very similar approach (and indeed the same function call, with additional arguments) to estimate the performance of this second model and assess the degree to which the models differ in performance.
+
+```{r}
+model2_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 2, sd = 5)
+
+mlboot(
+  y_true = sentiment_ratings, 
+  y_pred1 = model1_predictions, 
+  y_pred2 = model2_predictions, 
+  metric = mean_absolute_error
+)
+```
+
+The output shows the same observed performance for the first model, although the confidence interval is slightly different due to the stochastic nature of resampling. (If more consistent confidence interval bounds are desired, additional bootstrap resamples can be requested using the `nboot` argument.) The second model had an observed performance score of 4.349 which is indeed lower than that of the first model. To determine whether this difference is statistically significant (i.e., likely to be replicated with another sample), we can estimate the average difference between the performance scores of the models. The observed difference was -5.714 and the confidence interval extends from -6.041 to -5.352. Because the confidence interval does not include zero (and indeed is not particularly close to zero), we can conclude with 95% confidence that the second model has a lower mean absolute error than the first model.
 
 
 ## Code of Conduct

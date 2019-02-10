@@ -37,7 +37,7 @@ level of the confidence intervals to be estimated, such that 0.95 yields
 95% confidence intervals (default = 0.95).}
 }
 \value{
-A list containing the results and description of the analysis.
+A list containing the results and a description of the analysis.
 \item{type}{A string indicating whether a single predictive model was
 examined or two models were compared} \item{metric}{A string indicating the
 name of the performance metric function used} \item{ntotal}{An integer
@@ -51,8 +51,8 @@ and their difference} \item{score_cil}{A vector containing the lower bounds
 of the confidence intervals corresponding to the observed performance
 scores} \item{score_ciu}{A vector containing the upper bounds of the
 confidence intervals corresponding to the observed performance scores}
-\item{resamples}{A matrix containing the performance scores (and if
-applicable their difference) in each bootstrap resample}
+\item{resamples}{A matrix containing the performance scores and, if
+applicable, their difference in each bootstrap resample}
 }
 \description{
 Calculate the performance scores for one or two predictive models (and their
