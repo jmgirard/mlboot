@@ -14,39 +14,27 @@ knitr::opts_chunk$set(
 ```
 # mlboot
 
-The goal of mlboot is to ...
+The goal of *mlboot* is to provide a powerful, flexible, and user-friendly way to estimate and compare the performance of machine learning (and other predictive) models using bootstrap resampling. It was created in collaboration by [Jeffrey Girard](https://jmgirard.com/) and [Zhun Liu](http://justin1904.github.io/); this version for R is maintained by Jeffrey Girard and a similar version for Python is maintained by Zhun Liu.
 
 ## Installation
 
-You can install the released version of mlboot from [CRAN](https://CRAN.R-project.org) with:
-
 ``` r
-install.packages("mlboot")
+devtools::install_github("jmgirard/mlboot")
 ```
 
-## Example
+## Usage
 
-This is a basic example which shows you how to solve a common problem:
 
-```{r example}
-## basic example code
-```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub!
-
+## Code of Conduct
 
 Please note that the 'mlboot' project is released with a [Contributor Code of Conduct](.github/CODE_OF_CONDUCT.md). By contributing to this project, you agree to abide by its terms.
+
+## References
+
+Efron, B., & Tibshirani, R. J. (1993). *An introduction to the bootstrap.* New York, NY: Chapman and Hall.
+
+Field, C. A., & Welsh, A. H. (2007). Bootstrapping clustered data. *Journal of the Royal Statistical Society: Series B (Statistical Methodology), 69*(3), 369–390. https://doi.org/10/cqwx5p
+
+Ren, S., Lai, H., Tong, W., Aminzadeh, M., Hou, X., & Lai, S. (2010). Nonparametric bootstrapping for hierarchical data. *Journal of Applied Statistics, 37*(9), 1487–1498. https://doi.org/10/dvfzcn
+
+

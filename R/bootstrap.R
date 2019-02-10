@@ -1,7 +1,50 @@
-## Function to do the bootstrap 
+#' Calculate bootstrap confidence intervals for a performance metric
+#'
+#' Calculate the performance scores for one or two predictive models (and their
+#' difference) on a given testing set using an arbitrary performance metric and
+#' estimate bootstrap confidence intervals around these scores. Bootstrapping
+#' can be customized to be basic nonparametric or cluster nonparameter, etc.
+#'
+#' @param y_true Required. A vector containing "true" or trusted labels for a
+#'   set of testing examples.
+#' @param y_pred1 Required. A vector containing a predicted label for each
+#'   testing example in \code{y_true} from a first predictive model.
+#' @param y_pred2 Optional. A vector containing a predicted label for each
+#'   testing example in \code{y_true} from a second predictive model (default =
+#'   NULL).
+#' @param metric Required. A function that takes in at least two arguments (for
+#'   trusted labels and predicted labels, plus any additional customization
+#'   arguments) and returns a single number indicating performance. A number of
+#'   scoring/metric functions are built into the package and custom functions
+#'   can be developed as well.
+#' @param cluster Optional. A vector containing integers or strings indicating
+#'   the cluster membership of each testing example in \code{y_true}, such as
+#'   which person or group the testing example comes from (default = NULL).
+#' @param nboot Optional. A positive integer indicating how many bootstrap
+#'   resamples the confidence intervals should be estimated from (default =
+#'   2000).
+#' @param interval Optional. A number between 0 and 1 indicating the confidence
+#'   level of the confidence intervals to be estimated, such that 0.95 yields
+#'   95% confidence intervals (default = 0.95).
+#' @return A list containing the results and a description of the analysis.
+#'   \item{type}{A string indicating whether a single predictive model was
+#'   examined or two models were compared} \item{metric}{A string indicating the
+#'   name of the performance metric function used} \item{ntotal}{An integer
+#'   indicating the total number of examples in the test set} \item{ncluster}{An
+#'   integer indicating the number of clusters present in the test set}
+#'   \item{nboot}{An integer indicating the number of bootstrap resamples used
+#'   to estimate confidence intervals} \item{interval}{The confidence level of
+#'   the confidence intervals} \item{score_obs}{A vector containing the observed
+#'   performance score for the first model and, if applicable, the second model
+#'   and their difference} \item{score_cil}{A vector containing the lower bounds
+#'   of the confidence intervals corresponding to the observed performance
+#'   scores} \item{score_ciu}{A vector containing the upper bounds of the
+#'   confidence intervals corresponding to the observed performance scores}
+#'   \item{resamples}{A matrix containing the performance scores and, if
+#'   applicable, their difference in each bootstrap resample}
 #' @export
 mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL, 
-                   nboot = 2000, interval = 0.95) {
+                   nboot = 2000, interval = 0.95, ...) {
   
   assertthat::assert_that(is.vector(y_true))
   assertthat::assert_that(is.vector(y_pred1))
@@ -29,11 +72,11 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
     assertthat::assert_that(length(y_true) == length(cluster))
     bs_data <- dplyr::select(bs_data, -cluster)
     bs_data <- dplyr::mutate(bs_data, cluster = cluster)
-    bs_results <- clusterboot(bs_data, metric, nboot, interval)
+    bs_results <- clusterboot(bs_data, metric, nboot, interval, ...)
     ncluster <- length(unique(cluster))
   } else {
     ## If not clustering, bootstrap rows and then calculate scores
-    bs_results <- singleboot(bs_data, metric, nboot, interval)
+    bs_results <- singleboot(bs_data, metric, nboot, interval, ...)
     ncluster <- 1
   }
   
@@ -75,12 +118,12 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
 }
 
 ## Function to get results of clustered bootstrap
-clusterboot <- function(bs_data, metric, nboot, interval) {
+clusterboot <- function(bs_data, metric, nboot, interval, ...) {
   bs_data <- dplyr::group_by(bs_data, cluster)
   bs_data <- dplyr::summarize(bs_data, 
     n = n(),
-    score1 = metric(y_true, y_pred1),
-    score2 = metric(y_true, y_pred2),
+    score1 = metric(y_true, y_pred1, ...),
+    score2 = metric(y_true, y_pred2, ...),
     difference = score2 - score1
   )
   boot::boot(
@@ -97,12 +140,13 @@ clusterboot_stat <- function(data, index) {
 }
 
 ## Function to get results of non-clustered bootstrap
-singleboot <- function(bs_data, metric, nboot, interval) {
+singleboot <- function(bs_data, metric, nboot, interval, ...) {
   boot::boot(
     data = bs_data,
     statistic = singleboot_stat,
     R = nboot,
-    metric = metric
+    metric = metric,
+    ...
   )
 }
 
