@@ -122,8 +122,8 @@ clusterboot <- function(bs_data, metric, nboot, interval, ...) {
   bs_data <- dplyr::group_by(bs_data, cluster)
   bs_data <- dplyr::summarize(bs_data, 
     n = n(),
-    score1 = metric(dplyr::pull(y_true), dplyr::pull(y_pred1), ...),
-    score2 = metric(dplyr::pull(y_true), dplyr::pull(y_pred2), ...),
+    score1 = metric(y_true, y_pred1, ...),
+    score2 = metric(y_true, y_pred2, ...),
     difference = score2 - score1
   )
   boot::boot(

@@ -57,11 +57,12 @@ sentiment_ratings <- rnorm(n = 1000, mean = 50, sd = 10)
 model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10, sd = 5)
 
 # Estimate performance of the simulated predictions using the MAE performance metric
-mlboot(
+x <- mlboot(
   y_true = sentiment_ratings, 
   y_pred1 = model1_predictions, 
   metric = mean_absolute_error
 )
+x
 #> mlboot Results
 #> ========================================
 #> Sample:          N=1000, Clusters=1
@@ -70,7 +71,12 @@ mlboot(
 #> ========================================
 #> y_pred1:         10.063 [9.749, 10.349]
 #> ========================================
+
+# Plot the resampling distribution
+hist(x$resamples[, 1], main = "Histogram of MAE in resamples")
 ```
+
+<img src="man/figures/README-unnamed-chunk-1-1.png" width="100%" />
 
 The output shows that the observed performance (MAE) in the simulated
 sample was 10.063. This is quite close to the perturbation of 10 that we
@@ -92,8 +98,10 @@ and assess the degree to which the models differ in
 performance.
 
 ``` r
+# Perturb the trusted labels to a lesser degree to simulate better predictions
 model2_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 2, sd = 5)
 
+# Estimate performance of both models and compare them using the MAE metric
 mlboot(
   y_true = sentiment_ratings, 
   y_pred1 = model1_predictions, 
@@ -126,6 +134,53 @@ observed difference was -5.714 and the confidence interval extends from
 (and indeed is not particularly close to zero), we can conclude with 95%
 confidence that the second model has a lower mean absolute error than
 the first model.
+
+### Using the cluster bootstrap for hierarchical data
+
+It is common in many areas of applied machine learning to have testing
+sets that are hierarchical in structure. For example, there may be
+multiple testing examples that are clustered (e.g., come from the same
+individuals or groups) and therefore are not independent. Ignoring this
+dependency would result in biased estimates, so we need to account for
+it in some way. Although hierarchical resampling is an active area of
+research, two recent studies (Field & Welsh, 2007; Ren et al. 2010)
+suggest that the cluster bootstrap is an accurate and powerful approach
+to this issue. By supplying a vector indicating cluster membership for
+each testing example, `mlboot()` can implement the cluster bootstrap
+procedure. Note that this approach may lead to inaccuracies when the
+number of clusters is low (e.g., fewer than
+20).
+
+``` r
+# Assume the examples come from 50 different clusters corresponding to persons
+person <- rep(1:50, times = 20)
+
+# Generate random numbers to simulate trusted labels
+sentiment_ratings <- rnorm(n = 1000, mean = 20 + person, sd = 10)
+
+# Perturb the trusted labels to simulate predictions
+model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10 - person, sd = 5)
+model2_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 2 - person, sd = 5)
+
+# Estimate and compare the models using the cluster bootstrap
+mlboot(
+  y_true = sentiment_ratings, 
+  y_pred1 = model1_predictions, 
+  y_pred2 = model2_predictions, 
+  metric = mean_absolute_error,
+  cluster = person
+)
+#> mlboot Results
+#> ========================================
+#> Sample:          N=1000, Clusters=50
+#> Bootstrap:       BCa, R=2000, CI=0.95
+#> Metric:          mean_absolute_error
+#> ========================================
+#> y_pred1:         17.947 [14.892, 21.334]
+#> y_pred2:     23.969 [20.245, 27.981]
+#> Difference:  6.022 [4.544, 7.040]
+#> ========================================
+```
 
 ## Code of Conduct
 

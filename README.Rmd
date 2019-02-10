@@ -44,11 +44,15 @@ sentiment_ratings <- rnorm(n = 1000, mean = 50, sd = 10)
 model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10, sd = 5)
 
 # Estimate performance of the simulated predictions using the MAE performance metric
-mlboot(
+x <- mlboot(
   y_true = sentiment_ratings, 
   y_pred1 = model1_predictions, 
   metric = mean_absolute_error
 )
+x
+
+# Plot the resampling distribution
+hist(x$resamples[, 1], main = "Histogram of MAE in resamples")
 ```
 
 The output shows that the observed performance (MAE) in the simulated sample was 10.063. This is quite close to the perturbation of 10 that we added to create the labels, which is a good sign that our metric function is working properly. The output also shows a 95% confidence interval around the observed sample statistic; thus, we can be quite confident that the "true" population value of the performance metric is between 9.749 and 10.349. Given that our sample of 1000 videos is arbitrary, repeating the experiment with another 1000 videos would likely result in a different performance score - but the confidence interval suggests that the MAE shouldn't vary more than 0.3 or so.
@@ -57,8 +61,10 @@ The output shows that the observed performance (MAE) in the simulated sample was
 Now let's say we develop another model that is much more accurate. We can use a very similar approach (and indeed the same function call, with additional arguments) to estimate the performance of this second model and assess the degree to which the models differ in performance.
 
 ```{r}
+# Perturb the trusted labels to a lesser degree to simulate better predictions
 model2_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 2, sd = 5)
 
+# Estimate performance of both models and compare them using the MAE metric
 mlboot(
   y_true = sentiment_ratings, 
   y_pred1 = model1_predictions, 
@@ -69,6 +75,29 @@ mlboot(
 
 The output shows the same observed performance for the first model, although the confidence interval is slightly different due to the stochastic nature of resampling. (If more consistent confidence interval bounds are desired, additional bootstrap resamples can be requested using the `nboot` argument.) The second model had an observed performance score of 4.349 which is indeed lower than that of the first model. To determine whether this difference is statistically significant (i.e., likely to be replicated with another sample), we can estimate the average difference between the performance scores of the models. The observed difference was -5.714 and the confidence interval extends from -6.041 to -5.352. Because the confidence interval does not include zero (and indeed is not particularly close to zero), we can conclude with 95% confidence that the second model has a lower mean absolute error than the first model.
 
+### Using the cluster bootstrap for hierarchical data
+It is common in many areas of applied machine learning to have testing sets that are hierarchical in structure. For example, there may be multiple testing examples that are clustered (e.g., come from the same individuals or groups) and therefore are not independent. Ignoring this dependency would result in biased estimates, so we need to account for it in some way. Although hierarchical resampling is an active area of research, two recent studies (Field & Welsh, 2007; Ren et al. 2010) suggest that the cluster bootstrap is an accurate and powerful approach to this issue. By supplying a vector indicating cluster membership for each testing example, `mlboot()` can implement the cluster bootstrap procedure. Note that this approach may lead to inaccuracies when the number of clusters is low (e.g., fewer than 20). 
+
+```{r}
+# Assume the examples come from 50 different clusters corresponding to persons
+person <- rep(1:50, times = 20)
+
+# Generate random numbers to simulate trusted labels
+sentiment_ratings <- rnorm(n = 1000, mean = 20 + person, sd = 10)
+
+# Perturb the trusted labels to simulate predictions
+model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10 - person, sd = 5)
+model2_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 2 - person, sd = 5)
+
+# Estimate and compare the models using the cluster bootstrap
+mlboot(
+  y_true = sentiment_ratings, 
+  y_pred1 = model1_predictions, 
+  y_pred2 = model2_predictions, 
+  metric = mean_absolute_error,
+  cluster = person
+)
+```
 
 ## Code of Conduct
 
