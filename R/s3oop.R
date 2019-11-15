@@ -16,17 +16,29 @@ print.mlboot <- function(x, ...) {
     "Metric:      \t", x$metric, "\n", 
     "========================================\n",
     "y_pred1:     \t", sprintf(
-      "%.3f [%.3f, %.3f]", x$score_obs[[1]], x$score_cil[[1]], x$score_ciu[[1]]
+      "%.3f [%.3f, %.3f] p=%.03f", 
+      x$score_obs[[1]], 
+      x$score_cil[[1]], 
+      x$score_ciu[[1]],
+      x$score_pval[[1]]
     ), "\n", 
     sep = ""
   )
   if (x$type == "compare") {
     cat(
       "y_pred2:   \t", sprintf(
-        "%.3f [%.3f, %.3f]", x$score_obs[[2]], x$score_cil[[2]], x$score_ciu[[2]]
+        "%.3f [%.3f, %.3f] p=%.3f", 
+        x$score_obs[[2]], 
+        x$score_cil[[2]], 
+        x$score_ciu[[2]],
+        x$score_pval[[2]]
       ), "\n",
       "Difference:\t", sprintf(
-        "%.3f [%.3f, %.3f]", x$score_obs[[3]], x$score_cil[[3]], x$score_ciu[[3]]
+        "%.3f [%.3f, %.3f] p=%.3f", 
+        x$score_obs[[3]], 
+        x$score_cil[[3]], 
+        x$score_ciu[[3]],
+        x$score_pval[[3]]
       ), "\n", 
       sep = "")
   }

@@ -40,6 +40,7 @@
 #'   of the confidence intervals corresponding to the observed performance
 #'   scores} \item{score_ciu}{A vector containing the upper bounds of the
 #'   confidence intervals corresponding to the observed performance scores}
+#'   \item{score_pval}{A vector containing p-values for the performance scores}
 #'   \item{resamples}{A matrix containing the performance scores and, if
 #'   applicable, their difference in each bootstrap resample}
 #' @export
@@ -81,10 +82,12 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
   }
   
   ## Get bootstrap confidence intervals
-  if (type == "single") nout <- 1 else nout <- 3
+  
+  nout <- ifelse(type == "single", 1, 3)
   score_obs <- rep(NA, nout)
   score_cil <- rep(NA, nout)
   score_ciu <- rep(NA, nout)
+  score_pval <- rep(NA, nout)
   for (i in 1:nout) {
     bs_ci <- boot::boot.ci(
       boot.out <- bs_results,
@@ -95,8 +98,10 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
     score_obs[[i]] <- bs_ci$t0
     score_cil[[i]] <- bs_ci$bca[[4]]
     score_ciu[[i]] <- bs_ci$bca[[5]]
+    t_null <- bs_results$t[, i] - mean(bs_results$t[, i])
+    score_pval[[i]] <- mean(abs(t_null) > abs(bs_results$t0[[i]]))
   }
-
+  
   ## Create output object
   output <- new_s3_list(
     list(
@@ -109,6 +114,7 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
       score_obs = score_obs,
       score_cil = score_cil,
       score_ciu = score_ciu,
+      score_pval = score_pval,
       resamples = bs_results$t
     ),
     class = "mlboot"

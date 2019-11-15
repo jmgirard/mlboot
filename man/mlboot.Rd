@@ -4,8 +4,16 @@
 \alias{mlboot}
 \title{Calculate bootstrap confidence intervals for a performance metric}
 \usage{
-mlboot(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
-  nboot = 2000, interval = 0.95, ...)
+mlboot(
+  y_true,
+  y_pred1,
+  y_pred2 = NULL,
+  metric,
+  cluster = NULL,
+  nboot = 2000,
+  interval = 0.95,
+  ...
+)
 }
 \arguments{
 \item{y_true}{Required. A vector containing "true" or trusted labels for a
@@ -34,7 +42,7 @@ resamples the confidence intervals should be estimated from (default =
 
 \item{interval}{Optional. A number between 0 and 1 indicating the confidence
 level of the confidence intervals to be estimated, such that 0.95 yields
-95% confidence intervals (default = 0.95).}
+95\% confidence intervals (default = 0.95).}
 }
 \value{
 A list containing the results and a description of the analysis.
@@ -51,6 +59,7 @@ and their difference} \item{score_cil}{A vector containing the lower bounds
 of the confidence intervals corresponding to the observed performance
 scores} \item{score_ciu}{A vector containing the upper bounds of the
 confidence intervals corresponding to the observed performance scores}
+\item{score_pval}{A vector containing p-values for the performance scores}
 \item{resamples}{A matrix containing the performance scores and, if
 applicable, their difference in each bootstrap resample}
 }
