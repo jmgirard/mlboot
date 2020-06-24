@@ -43,6 +43,9 @@ resamples the confidence intervals should be estimated from (default =
 \item{interval}{Optional. A number between 0 and 1 indicating the confidence
 level of the confidence intervals to be estimated, such that 0.95 yields
 95\% confidence intervals (default = 0.95).}
+
+\item{...}{Optional. Additional arguments to pass along to the \code{metric}
+function.}
 }
 \value{
 A list containing the results and a description of the analysis.

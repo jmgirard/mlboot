@@ -26,6 +26,8 @@
 #' @param interval Optional. A number between 0 and 1 indicating the confidence
 #'   level of the confidence intervals to be estimated, such that 0.95 yields
 #'   95% confidence intervals (default = 0.95).
+#' @param ... Optional. Additional arguments to pass along to the \code{metric}
+#'   function.
 #' @return A list containing the results and a description of the analysis.
 #'   \item{type}{A string indicating whether a single predictive model was
 #'   examined or two models were compared} \item{metric}{A string indicating the
@@ -61,7 +63,7 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
   
   ## If a second set of predictions exists, append them to the tibble
   if (!is.null(y_pred2)) {
-    assertthat::assert_that(is.vector(y_pred2))
+    assertthat::assert_that(rlang::is_vector(y_pred2))
     assertthat::assert_that(length(y_true) == length(y_pred2))
     type <- "compare"
     bs_data <- dplyr::select(bs_data, -y_pred2)
@@ -125,13 +127,7 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
 
 ## Function to get results of clustered bootstrap
 clusterboot <- function(bs_data, metric, nboot, interval, ...) {
-  bs_data <- dplyr::group_by(bs_data, cluster)
-  bs_data <- dplyr::summarize(bs_data, 
-    n = n(),
-    score1 = metric(y_true, y_pred1, ...),
-    score2 = metric(y_true, y_pred2, ...),
-    difference = score2 - score1
-  )
+  bs_data <- tidyr::nest(bs_data, data = c(-cluster))
   boot::boot(
     data = bs_data,
     statistic = clusterboot_stat,
@@ -139,9 +135,12 @@ clusterboot <- function(bs_data, metric, nboot, interval, ...) {
   )
 }
 
-clusterboot_stat <- function(data, index) {
-  resample <- data[index, ]
-  results <- colMeans(resample)[3:5]
+clusterboot_stat <- function(df, index) {
+  resample <- df[index, ]
+  resample <- tidyr::unnest(resample, cols = data)
+  score1 <- metric(resample$y_true, resample$y_pred1, ...)
+  score2 <- metric(resample$y_true, resample$y_pred2, ...)
+  results <- c(score1, score2, score2 - score1)
   results
 }
 
@@ -158,11 +157,8 @@ singleboot <- function(bs_data, metric, nboot, interval, ...) {
 
 singleboot_stat <- function(data, index, metric, ...) {
   resample <- data[index, ]
-  r_true <- dplyr::pull(resample[, "y_true"])
-  r_pred1 <- dplyr::pull(resample[, "y_pred1"])
-  r_pred2 <- dplyr::pull(resample[, "y_pred2"])
-  score1 <- metric(r_true, r_pred1, ...)
-  score2 <- metric(r_true, r_pred2, ...)
+  score1 <- metric(resample$y_true, resample$y_pred1, ...)
+  score2 <- metric(resample$y_true, resample$y_pred2, ...)
   results <- c(score1, score2, score2 - score1)
   results
 }
