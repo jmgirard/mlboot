@@ -73,7 +73,7 @@ mlboot(
 #> Metric:          mean_absolute_error
 #> 
 #>          Estimate   Lower.CI   Upper.CI   Sig.
-#> model1       10.1       9.76       10.4      *
+#> model1     10.063       9.76      10.38      *
 ```
 
 The output shows that the observed performance (MAE) in the simulated
@@ -116,9 +116,9 @@ mlboot(
 #> Metric:          mean_absolute_error
 #> 
 #>                   Estimate   Lower.CI   Upper.CI   Sig.
-#> model1               10.06       9.77      10.35      *
-#> model2                5.92       5.69       6.18      *
-#> model1 - model2       4.14       3.74       4.48      *
+#> model1              10.063      9.770     10.345      *
+#> model2               5.925      5.690      6.181      *
+#> model1 - model2      4.138      3.738      4.484      *
 ```
 
 The output shows the same observed performance for the first model,
@@ -135,6 +135,46 @@ observed difference was 4.138 and the confidence interval extends from
 (and indeed is not particularly close to zero), we can conclude with 95%
 confidence that the second model has a lower mean absolute error than
 the first model.
+
+### Estimating and comparing the performance of many models
+
+The same approach can be applied to any number of models. When `pairwise
+= TRUE`, all pairs of models will be compared.
+
+``` r
+# Perturb the trusted labels to a lesser degree to simulate better predictions
+model3 <- ratings + rnorm(n = 1000, mean = 10, sd = 5)
+model4 <- ratings + rnorm(n = 1000, mean = 5, sd = 5)
+
+# Append to existing dataframe
+dat3 <- cbind(dat2, model3, model4)
+
+# Estimate performance of both models and compare them using the MAE metric
+mlboot(
+  .data = dat3,
+  trusted = "ratings",
+  predicted = c("model1", "model2", "model3", "model4"),
+  metric = mean_absolute_error,
+  pairwise = TRUE
+)
+#> mlboot Results
+#> 
+#> Sample:          N=1000, Clusters=NA
+#> Bootstrap:       BCa, R=2000, CI=0.95
+#> Metric:          mean_absolute_error
+#> 
+#>                   Estimate   Lower.CI   Upper.CI   Sig.
+#> model1              10.063      9.764     10.363      *
+#> model2               5.925      5.675      6.174      *
+#> model3              10.186      9.882     10.490      *
+#> model4               5.859      5.606      6.110      *
+#> model1 - model2      4.138      3.740      4.520      *
+#> model1 - model3     -0.123     -0.558      0.317       
+#> model1 - model4     -4.261     -4.638     -3.852      *
+#> model2 - model3      4.204      3.800      4.603      *
+#> model2 - model4      0.066     -0.256      0.426       
+#> model3 - model4      4.327      3.934      4.729      *
+```
 
 ### Using the cluster bootstrap for hierarchical data
 
@@ -181,9 +221,9 @@ mlboot(
 #> Metric:          mean_absolute_error
 #> 
 #>                   Estimate   Lower.CI   Upper.CI   Sig.
-#> model1               17.83      14.75      21.34      *
-#> model2               21.30      17.80      25.17      *
-#> model1 - model2      -3.48      -4.18      -2.53      *
+#> model1              17.926     14.734     21.427      *
+#> model2              21.478     17.831     25.326      *
+#> model1 - model2     -3.552     -4.212     -2.728      *
 ```
 
 ### Visualizing bootstrap results
