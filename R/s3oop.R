@@ -7,7 +7,7 @@ new_s3_list <- function(x, ..., class) {
 
 ## S3 Class Methods
 #' @export
-print.mlboot <- function(x, digits = 3, ...) {
+print.mlboot <- function(x, digits = 3, star = TRUE, ...) {
   # Print header
   cat(
     "mlboot Results\n\n",
@@ -17,10 +17,22 @@ print.mlboot <- function(x, digits = 3, ...) {
     sep = ""
   )
   # Print results
-  v <- c(x$score_obs, x$score_cil, x$score_ciu)
-  m <- round(matrix(v, ncol = 3), digits)
-  rownames(m) <- x$score_lab
-  colnames(m) <- c("Estimate", "Lower CI", "Upper CI")
-  print.default(m, print.gap = 3L, na.print = "")
+  out <- data.frame(
+    Estimate = round(x$score_obs, digits),
+    Lower.CI = round(x$score_cil, digits),
+    Upper.CI = round(x$score_ciu, digits)
+  )
+  
+  if (star == TRUE) {
+    out <- dplyr::mutate(out, `Sig.` = sig_star(Lower.CI, Upper.CI))
+  }
+  rownames(out) <- x$score_lab
+  
+  print.data.frame(out, print.gap = 3L, na.print = "")
   cat("\n")
+}
+
+sig_star <- function(lb, ub) {
+  contains_zero <- (lb <= 0) & (ub >= 0)
+  dplyr::if_else(contains_zero, "", "*")
 }

@@ -6,8 +6,8 @@
 #' can be customized to be basic nonparametric or cluster nonparameter, etc.
 #'
 #' @param .data Required. A dataframe containing trusted labels and predicted
-#'   labels where each row is a single object/observation and each column is
-#'   a variable describing that object/observation.
+#'   labels where each row is a single object/observation and each column is a
+#'   variable describing that object/observation.
 #' @param trusted Required. The name of a single variable in \code{.data} that
 #'   contains trusted labels.
 #' @param predicted Required. A vector of names of one or more variables in

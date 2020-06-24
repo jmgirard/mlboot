@@ -72,8 +72,8 @@ mlboot(
 #> Bootstrap:       BCa, R=2000, CI=0.95
 #> Metric:          mean_absolute_error
 #> 
-#>          Estimate   Lower CI   Upper CI
-#> model1     10.063       9.76      10.38
+#>          Estimate   Lower.CI   Upper.CI   Sig.
+#> model1       10.1       9.76       10.4      *
 ```
 
 The output shows that the observed performance (MAE) in the simulated
@@ -115,10 +115,10 @@ mlboot(
 #> Bootstrap:       BCa, R=2000, CI=0.95
 #> Metric:          mean_absolute_error
 #> 
-#>                   Estimate   Lower CI   Upper CI
-#> model1              10.063      9.770     10.345
-#> model2               5.925      5.690      6.181
-#> model1 - model2      4.138      3.738      4.484
+#>                   Estimate   Lower.CI   Upper.CI   Sig.
+#> model1               10.06       9.77      10.35      *
+#> model2                5.92       5.69       6.18      *
+#> model1 - model2       4.14       3.74       4.48      *
 ```
 
 The output shows the same observed performance for the first model,
@@ -180,10 +180,10 @@ mlboot(
 #> Bootstrap:       BCa, R=2000, CI=0.95
 #> Metric:          mean_absolute_error
 #> 
-#>                   Estimate   Lower CI   Upper CI
-#> model1              17.826     14.749     21.345
-#> model2              21.302     17.797     25.170
-#> model1 - model2     -3.476     -4.178     -2.527
+#>                   Estimate   Lower.CI   Upper.CI   Sig.
+#> model1               17.83      14.75      21.34      *
+#> model2               21.30      17.80      25.17      *
+#> model1 - model2      -3.48      -4.18      -2.53      *
 ```
 
 ### Visualizing bootstrap results

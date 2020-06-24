@@ -18,8 +18,8 @@ mlboot(
 }
 \arguments{
 \item{.data}{Required. A dataframe containing trusted labels and predicted
-labels where each row is a single object/observation and each column is
-a variable describing that object/observation.}
+labels where each row is a single object/observation and each column is a
+variable describing that object/observation.}
 
 \item{trusted}{Required. The name of a single variable in \code{.data} that
 contains trusted labels.}
