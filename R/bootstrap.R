@@ -47,8 +47,8 @@
 mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL, 
                    nboot = 2000, interval = 0.95, ...) {
   
-  assertthat::assert_that(is.vector(y_true))
-  assertthat::assert_that(is.vector(y_pred1))
+  assertthat::assert_that(rlang::is_vector(y_true))
+  assertthat::assert_that(rlang::is_vector(y_pred1))
   assertthat::assert_that(length(y_true) == length(y_pred1))
   assertthat::assert_that(assertthat::is.count(nboot))
   assertthat::assert_that(interval > 0, interval < 1)
