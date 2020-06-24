@@ -24,11 +24,12 @@ Imports:
     assertthat (>= 0.2.0),
     boot,
     dplyr (>= 1.0.0),
-    rlang (>= 0.4)
+    rlang (>= 0.4.0),
+    tidyr (>= 1.0.0)
 Suggests:
-    rmarkdown (>= 1.11),
-    roxygen2 (>= 6.1.1),
-    testthat (>= 2.0.1)
+    rmarkdown (>= 2.0.0),
+    roxygen2 (>= 7.0.0),
+    testthat (>= 2.3.0)
 VignetteBuilder: 
     knitr
 Roxygen: list(markdown = TRUE)
