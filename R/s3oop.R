@@ -7,40 +7,20 @@ new_s3_list <- function(x, ..., class) {
 
 ## S3 Class Methods
 #' @export
-print.mlboot <- function(x, ...) {
+print.mlboot <- function(x, digits = 3, ...) {
+  # Print header
   cat(
-    "mlboot Results\n",
-    "========================================\n",
-    "Sample:      \tN=", x$ntotal, ", Clusters=", x$ncluster, "\n",
-    "Bootstrap:   \tBCa, R=", x$nboot, ", CI=", x$interval, "\n",
-    "Metric:      \t", x$metric, "\n", 
-    "========================================\n",
-    "y_pred1:     \t", sprintf(
-      "%.3f [%.3f, %.3f] p=%.03f", 
-      x$score_obs[[1]], 
-      x$score_cil[[1]], 
-      x$score_ciu[[1]],
-      x$score_pval[[1]]
-    ), "\n", 
+    "mlboot Results\n\n",
+    "Sample:      \tN=", x$n_total, ", Clusters=", x$n_cluster, "\n",
+    "Bootstrap:   \tBCa, R=", x$n_boot, ", CI=", x$interval, "\n",
+    "Metric:      \t", x$metric, "\n\n",
     sep = ""
   )
-  if (x$type == "compare") {
-    cat(
-      "y_pred2:   \t", sprintf(
-        "%.3f [%.3f, %.3f] p=%.3f", 
-        x$score_obs[[2]], 
-        x$score_cil[[2]], 
-        x$score_ciu[[2]],
-        x$score_pval[[2]]
-      ), "\n",
-      "Difference:\t", sprintf(
-        "%.3f [%.3f, %.3f] p=%.3f", 
-        x$score_obs[[3]], 
-        x$score_cil[[3]], 
-        x$score_ciu[[3]],
-        x$score_pval[[3]]
-      ), "\n", 
-      sep = "")
-  }
-  cat("========================================\n")
+  # Print results
+  v <- c(x$score_obs, x$score_cil, x$score_ciu)
+  m <- round(matrix(v, ncol = 3), digits)
+  rownames(m) <- x$score_lab
+  colnames(m) <- c("Estimate", "Lower CI", "Upper CI")
+  print.default(m, print.gap = 3L, na.print = "")
+  cat("\n")
 }

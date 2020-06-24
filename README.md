@@ -9,7 +9,7 @@ learning (and other predictive) models using bootstrap resampling. It
 was created in collaboration by [Jeffrey Girard](https://jmgirard.com/)
 and [Zhun Liu](http://justin1904.github.io/); this version for R is
 maintained by Jeffrey Girard and a similar version for Python is
-maintained by Zhun Liu [here](https://github.com/Justin1904/mlboot-py).
+maintained by Zhun Liu.
 
 ## Installation
 
@@ -51,25 +51,29 @@ resampling.
 library(mlboot)
 
 # Generate random numbers to simulate trusted labels
-sentiment_ratings <- rnorm(n = 1000, mean = 50, sd = 10)
+ratings <- rnorm(n = 1000, mean = 50, sd = 10)
 
 # Perturb the trusted labels to simulate predictions
-model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10, sd = 5)
+model1 <- ratings + rnorm(n = 1000, mean = 10, sd = 5)
+
+# Combine variables into a dataframe
+dat <- data.frame(ratings, model1)
 
 # Estimate performance of the simulated predictions using the MAE performance metric
 mlboot(
-  y_true = sentiment_ratings, 
-  y_pred1 = model1_predictions, 
+  .data = dat,
+  trusted = "ratings",
+  predicted = "model1",
   metric = mean_absolute_error
 )
 #> mlboot Results
-#> ========================================
-#> Sample:          N=1000, Clusters=1
+#> 
+#> Sample:          N=1000, Clusters=NA
 #> Bootstrap:       BCa, R=2000, CI=0.95
 #> Metric:          mean_absolute_error
-#> ========================================
-#> y_pred1:         10.063 [9.749, 10.349]
-#> ========================================
+#> 
+#>          Estimate   Lower CI   Upper CI
+#> model1     10.063       9.76      10.38
 ```
 
 The output shows that the observed performance (MAE) in the simulated
@@ -88,30 +92,33 @@ interval suggests that the MAE shouldn’t vary more than 0.3 or so.
 Now let’s say we develop another model that is much more accurate. We
 can use a very similar approach (and indeed the same function call, with
 additional arguments) to estimate the performance of this second model
-and assess the degree to which the models differ in
-performance.
+and assess the degree to which the models differ in performance.
 
 ``` r
 # Perturb the trusted labels to a lesser degree to simulate better predictions
-model2_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 2, sd = 5)
+model2 <- ratings + rnorm(n = 1000, mean = 5, sd = 5)
+
+# Append to existing dataframe
+dat2 <- cbind(dat, model2)
 
 # Estimate performance of both models and compare them using the MAE metric
 mlboot(
-  y_true = sentiment_ratings, 
-  y_pred1 = model1_predictions, 
-  y_pred2 = model2_predictions, 
-  metric = mean_absolute_error
+  .data = dat2,
+  trusted = "ratings",
+  predicted = c("model1", "model2"),
+  metric = mean_absolute_error,
+  pairwise = TRUE
 )
 #> mlboot Results
-#> ========================================
-#> Sample:          N=1000, Clusters=1
+#> 
+#> Sample:          N=1000, Clusters=NA
 #> Bootstrap:       BCa, R=2000, CI=0.95
 #> Metric:          mean_absolute_error
-#> ========================================
-#> y_pred1:         10.063 [9.760, 10.362]
-#> y_pred2:     4.349 [4.164, 4.548]
-#> Difference:  -5.714 [-6.041, -5.352]
-#> ========================================
+#> 
+#>                   Estimate   Lower CI   Upper CI
+#> model1              10.063      9.770     10.345
+#> model2               5.925      5.690      6.181
+#> model1 - model2      4.138      3.738      4.484
 ```
 
 The output shows the same observed performance for the first model,
@@ -119,12 +126,12 @@ although the confidence interval is slightly different due to the
 stochastic nature of resampling. (If more consistent confidence interval
 bounds are desired, additional bootstrap resamples can be requested
 using the `nboot` argument.) The second model had an observed
-performance score of 4.349 which is indeed lower than that of the first
+performance score of 5.925 which is indeed lower than that of the first
 model. To determine whether this difference is statistically significant
 (i.e., likely to be replicated with another sample), we can estimate the
 average difference between the performance scores of the models. The
-observed difference was -5.714 and the confidence interval extends from
--6.041 to -5.352. Because the confidence interval does not include zero
+observed difference was 4.138 and the confidence interval extends from
+3.738 to 4.484 Because the confidence interval does not include zero
 (and indeed is not particularly close to zero), we can conclude with 95%
 confidence that the second model has a lower mean absolute error than
 the first model.
@@ -142,53 +149,60 @@ suggest that the cluster bootstrap is an accurate and powerful approach
 to this issue. By supplying a vector indicating cluster membership for
 each testing example, `mlboot()` can implement the cluster bootstrap
 procedure. Note that this approach may lead to inaccuracies when the
-number of clusters is low (e.g., fewer than
-20).
+number of clusters is low (e.g., fewer than 20).
 
 ``` r
 # Assume the examples come from 50 different clusters corresponding to persons
-person <- rep(1:50, times = 20)
+person <- rep(1:50, each = 20)
 
 # Generate random numbers to simulate trusted labels
-sentiment_ratings <- rnorm(n = 1000, mean = 20 + person, sd = 10)
+ratings <- rnorm(n = 1000, mean = 20 + person, sd = 10)
 
 # Perturb the trusted labels to simulate predictions
-model1_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 10 - person, sd = 5)
-model2_predictions <- sentiment_ratings + rnorm(n = 1000, mean = 2 - person, sd = 5)
+model1 <- ratings + rnorm(n = 1000, mean = 10 - person, sd = 5)
+model2 <- ratings + rnorm(n = 1000, mean = 5 - person, sd = 5)
+
+# Combine variables into dataframe
+dat3 <- data.frame(person, ratings, model1, model2)
 
 # Estimate and compare the models using the cluster bootstrap
 mlboot(
-  y_true = sentiment_ratings, 
-  y_pred1 = model1_predictions, 
-  y_pred2 = model2_predictions, 
+  .data = dat3,
+  trusted = "ratings",
+  predicted = c("model1", "model2"),
   metric = mean_absolute_error,
-  cluster = person
+  cluster = person,
+  pairwise = TRUE
 )
 #> mlboot Results
-#> ========================================
+#> 
 #> Sample:          N=1000, Clusters=50
 #> Bootstrap:       BCa, R=2000, CI=0.95
 #> Metric:          mean_absolute_error
-#> ========================================
-#> y_pred1:         17.947 [14.892, 21.334]
-#> y_pred2:     23.969 [20.245, 27.981]
-#> Difference:  6.022 [4.544, 7.040]
-#> ========================================
+#> 
+#>                   Estimate   Lower CI   Upper CI
+#> model1              17.826     14.749     21.345
+#> model2              21.302     17.797     25.170
+#> model1 - model2     -3.476     -4.178     -2.527
 ```
 
 ### Visualizing bootstrap results
 
 ``` r
-results <- mlboot(
-  y_true = sentiment_ratings, 
-  y_pred1 = model1_predictions, 
-  metric = mean_absolute_error
-)
+results <- 
+  mlboot(
+    .data = dat3,
+    trusted = "ratings",
+    predicted = c("model1", "model2"),
+    metric = mean_absolute_error,
+    cluster = person,
+    pairwise = TRUE
+  )
 
-hist(results$resamples[, 1])
+hist(results$resamples[, 3])
 ```
 
-<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
+<img src="man/figures/README-histogram-1.png" width="100%" />
 
 ## Code of Conduct
 

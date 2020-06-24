@@ -5,26 +5,27 @@
 \title{Calculate bootstrap confidence intervals for a performance metric}
 \usage{
 mlboot(
-  y_true,
-  y_pred1,
-  y_pred2 = NULL,
+  .data,
+  trusted,
+  predicted,
   metric,
-  cluster = NULL,
-  nboot = 2000,
+  cluster,
+  pairwise = TRUE,
+  n_boot = 2000,
   interval = 0.95,
   ...
 )
 }
 \arguments{
-\item{y_true}{Required. A vector containing "true" or trusted labels for a
-set of testing examples.}
+\item{.data}{Required. A dataframe containing trusted labels and predicted
+labels where each row is a single object/observation and each column is
+a variable describing that object/observation.}
 
-\item{y_pred1}{Required. A vector containing a predicted label for each
-testing example in \code{y_true} from a first predictive model.}
+\item{trusted}{Required. The name of a single variable in \code{.data} that
+contains trusted labels.}
 
-\item{y_pred2}{Optional. A vector containing a predicted label for each
-testing example in \code{y_true} from a second predictive model (default =
-NULL).}
+\item{predicted}{Required. A vector of names of one or more variables in
+\code{.data} that contains predicted labels.}
 
 \item{metric}{Required. A function that takes in at least two arguments (for
 trusted labels and predicted labels, plus any additional customization
@@ -32,11 +33,10 @@ arguments) and returns a single number indicating performance. A number of
 scoring/metric functions are built into the package and custom functions
 can be developed as well.}
 
-\item{cluster}{Optional. A vector containing integers or strings indicating
-the cluster membership of each testing example in \code{y_true}, such as
-which person or group the testing example comes from (default = NULL).}
+\item{cluster}{Optional. The name of a single variable in \code{.data} that
+contains the cluster membership of each object/observation.}
 
-\item{nboot}{Optional. A positive integer indicating how many bootstrap
+\item{n_boot}{Optional. A positive integer indicating how many bootstrap
 resamples the confidence intervals should be estimated from (default =
 2000).}
 

@@ -5,22 +5,21 @@
 #' estimate bootstrap confidence intervals around these scores. Bootstrapping
 #' can be customized to be basic nonparametric or cluster nonparameter, etc.
 #'
-#' @param y_true Required. A vector containing "true" or trusted labels for a
-#'   set of testing examples.
-#' @param y_pred1 Required. A vector containing a predicted label for each
-#'   testing example in \code{y_true} from a first predictive model.
-#' @param y_pred2 Optional. A vector containing a predicted label for each
-#'   testing example in \code{y_true} from a second predictive model (default =
-#'   NULL).
+#' @param .data Required. A dataframe containing trusted labels and predicted
+#'   labels where each row is a single object/observation and each column is
+#'   a variable describing that object/observation.
+#' @param trusted Required. The name of a single variable in \code{.data} that
+#'   contains trusted labels.
+#' @param predicted Required. A vector of names of one or more variables in
+#'   \code{.data} that contains predicted labels.
 #' @param metric Required. A function that takes in at least two arguments (for
 #'   trusted labels and predicted labels, plus any additional customization
 #'   arguments) and returns a single number indicating performance. A number of
 #'   scoring/metric functions are built into the package and custom functions
 #'   can be developed as well.
-#' @param cluster Optional. A vector containing integers or strings indicating
-#'   the cluster membership of each testing example in \code{y_true}, such as
-#'   which person or group the testing example comes from (default = NULL).
-#' @param nboot Optional. A positive integer indicating how many bootstrap
+#' @param cluster Optional. The name of a single variable in \code{.data} that
+#'   contains the cluster membership of each object/observation.
+#' @param n_boot Optional. A positive integer indicating how many bootstrap
 #'   resamples the confidence intervals should be estimated from (default =
 #'   2000).
 #' @param interval Optional. A number between 0 and 1 indicating the confidence
@@ -46,53 +45,75 @@
 #'   \item{resamples}{A matrix containing the performance scores and, if
 #'   applicable, their difference in each bootstrap resample}
 #' @export
-mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL, 
-                   nboot = 2000, interval = 0.95, ...) {
+mlboot <- function(.data, trusted, predicted, metric, cluster, 
+                   pairwise = TRUE, n_boot = 2000, interval = 0.95, ...) {
   
-  assertthat::assert_that(rlang::is_vector(y_true))
-  assertthat::assert_that(rlang::is_vector(y_pred1))
-  assertthat::assert_that(length(y_true) == length(y_pred1))
-  assertthat::assert_that(assertthat::is.count(nboot))
+  assertthat::assert_that(assertthat::is.count(n_boot))
   assertthat::assert_that(interval > 0, interval < 1)
-  #check that metric function exists
+  assertthat::assert_that(is.function(metric))
+  assertthat::assert_that(assertthat::is.flag(pairwise))
   
-  ## Combine the labels and first set of predictions into a tibble
-  type <- "single"
-  ntotal <- length(y_true)
-  bs_data <- dplyr::tibble(y_true, y_pred1, y_pred2 = NA, cluster = NA)
+  bs_data <- dplyr::select(.data, {{trusted}}, {{predicted}}, {{cluster}})
   
-  ## If a second set of predictions exists, append them to the tibble
-  if (!is.null(y_pred2)) {
-    assertthat::assert_that(rlang::is_vector(y_pred2))
-    assertthat::assert_that(length(y_true) == length(y_pred2))
-    type <- "compare"
-    bs_data <- dplyr::select(bs_data, -y_pred2)
-    bs_data <- dplyr::mutate(bs_data, y_pred2 = y_pred2)
-  }
+  n_total <- nrow(.data)
+  
+  # Get the trusted variable's name
+  trusted_name <- colnames(dplyr::select(bs_data, {{trusted}}))
+  # Count and validate the number of trusted variables
+  n_trusted <- length(trusted_name)
+  assertthat::assert_that(n_trusted == 1)
+  
+  # Get the predicted variables' names
+  predicted_names <- colnames(dplyr::select(bs_data, {{predicted}}))
+  # Count and validate the number of predicted variables
+  n_predicted <- length(predicted_names)
+  assertthat::assert_that(n_predicted >= 1)
   
   ## If clustering, calculate scores per cluster and bootstrap scores
-  if (!is.null(cluster)) {
-    assertthat::assert_that(length(y_true) == length(cluster))
-    bs_data <- dplyr::select(bs_data, -cluster)
-    bs_data <- dplyr::mutate(bs_data, cluster = cluster)
-    bs_results <- clusterboot(bs_data, metric, nboot, interval, ...)
-    ncluster <- length(unique(cluster))
+  if (rlang::quo_is_missing(rlang::enquo(cluster)) == FALSE &&
+      rlang::quo_is_null(rlang::enquo(cluster)) == FALSE) {
+    # Get the name of the clustering variable for later printing
+    cluster_name <- colnames(dplyr::select(bs_data, {{cluster}}))
+    # Count the number of clusters present in the data
+    n_cluster <- length(unique(dplyr::pull(bs_data, {{cluster}})))
+    # Nest the data by cluster to allow clustered bootstrapping
+    bs_data <- tidyr::nest(bs_data, data = c(-{{cluster}}))
+    # Perform the clustered bootstrap procedure
+    bs_results <- clusterboot(
+      bs_data = bs_data, 
+      metric = metric, 
+      pairwise = pairwise,
+      n_boot = n_boot, 
+      interval = interval, 
+      trusted_name = trusted_name,
+      predicted_names = predicted_names,
+      ...
+    )
   } else {
     ## If not clustering, bootstrap rows and then calculate scores
-    bs_results <- singleboot(bs_data, metric, nboot, interval, ...)
-    ncluster <- 1
+    bs_results <- singleboot(
+      bs_data = bs_data, 
+      metric = metric, 
+      pairwise = pairwise,
+      n_boot = n_boot, 
+      interval = interval, 
+      trusted_name = trusted_name,
+      predicted_names = predicted_names,
+      ...
+    )
+    n_cluster <- NA
   }
   
   ## Get bootstrap confidence intervals
   
-  nout <- ifelse(type == "single", 1, 3)
-  score_obs <- rep(NA, nout)
-  score_cil <- rep(NA, nout)
-  score_ciu <- rep(NA, nout)
-  score_pval <- rep(NA, nout)
+  nout <- length(bs_results$t0)
+  score_obs <- rep(NA_real_, nout)
+  score_cil <- rep(NA_real_, nout)
+  score_ciu <- rep(NA_real_, nout)
+  score_lab <- names(bs_results$t0)
   for (i in 1:nout) {
     bs_ci <- boot::boot.ci(
-      boot.out <- bs_results,
+      boot.out = bs_results,
       conf = interval,
       type = "bca",
       index = i
@@ -100,23 +121,20 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
     score_obs[[i]] <- bs_ci$t0
     score_cil[[i]] <- bs_ci$bca[[4]]
     score_ciu[[i]] <- bs_ci$bca[[5]]
-    t_null <- bs_results$t[, i] - mean(bs_results$t[, i])
-    score_pval[[i]] <- mean(abs(t_null) > abs(bs_results$t0[[i]]))
   }
   
   ## Create output object
   output <- new_s3_list(
     list(
-      type = type,
       metric = as.character(substitute(metric)),
-      ntotal = ntotal,
-      ncluster = ncluster,
-      nboot = nboot,
+      n_total = n_total,
+      n_cluster = n_cluster,
+      n_boot = n_boot,
       interval = interval,
+      score_lab = score_lab,
       score_obs = score_obs,
       score_cil = score_cil,
       score_ciu = score_ciu,
-      score_pval = score_pval,
       resamples = bs_results$t
     ),
     class = "mlboot"
@@ -126,41 +144,102 @@ mlboot <- function(y_true, y_pred1, y_pred2 = NULL, metric, cluster = NULL,
 }
 
 ## Function to get results of clustered bootstrap
-clusterboot <- function(bs_data, metric, nboot, interval, ...) {
-  bs_data <- tidyr::nest(bs_data, data = c(-cluster))
+clusterboot <- function(bs_data, metric, n_boot, interval, pairwise,
+                        trusted_name, predicted_names, ...) {
   boot::boot(
     data = bs_data,
     statistic = clusterboot_stat,
-    R = nboot,
+    R = n_boot,
     metric = metric,
+    pairwise = pairwise,
+    trusted_name = trusted_name,
+    predicted_names = predicted_names,
     ...
   )
 }
 
-clusterboot_stat <- function(df, index, metric, ...) {
+clusterboot_stat <- function(df, index, metric, pairwise,
+                             trusted_name, predicted_names, ...) {
+  # Create clustered bootstrap resample
   resample <- df[index, ]
   resample <- tidyr::unnest(resample, cols = data)
-  score1 <- metric(resample$y_true, resample$y_pred1, ...)
-  score2 <- metric(resample$y_true, resample$y_pred2, ...)
-  results <- c(score1, score2, score2 - score1)
+  # Preallocate results vector
+  k <- length(predicted_names)
+  if (pairwise == TRUE) {
+    results <- rep(NA_real_, k + choose(k, 2))
+  } else {
+    results <- rep(NA_real_, k)
+  }
+  # Calculate metric for each source of predicted labels
+  for (i in seq_along(predicted_names)) {
+    results[[i]] <- metric(
+      dplyr::pull(resample, trusted_name), 
+      dplyr::pull(resample, predicted_names[[i]]), 
+      ...
+    )
+  }
+  names(results)[1:k] <- predicted_names
+  # If requested, add all pairwise differences
+  if (k > 1 && pairwise == TRUE) {
+    pair_diff <- outer(results[1:k], results[1:k], "-")
+    pair_diff <- pair_diff[upper.tri(pair_diff)]
+    results[(k + 1):length(results)] <- pair_diff
+    names(results)[(k + 1):length(results)] <- apply(
+      combn(predicted_names, 2), 
+      MARGIN = 2,
+      FUN = paste,
+      collapse = " - "
+    )
+  }
   results
 }
 
 ## Function to get results of non-clustered bootstrap
-singleboot <- function(bs_data, metric, nboot, interval, ...) {
+singleboot <- function(bs_data, metric, n_boot, interval, pairwise,
+                       trusted_name, predicted_names, ...) {
   boot::boot(
     data = bs_data,
     statistic = singleboot_stat,
-    R = nboot,
+    R = n_boot,
     metric = metric,
+    pairwise = pairwise,
+    trusted_name = trusted_name,
+    predicted_names = predicted_names,
     ...
   )
 }
 
-singleboot_stat <- function(data, index, metric, ...) {
+singleboot_stat <- function(data, index, metric, pairwise,
+                            trusted_name, predicted_names, ...) {
+  # Create bootstrap resample
   resample <- data[index, ]
-  score1 <- metric(resample$y_true, resample$y_pred1, ...)
-  score2 <- metric(resample$y_true, resample$y_pred2, ...)
-  results <- c(score1, score2, score2 - score1)
+  # Preallocate results vector
+  k <- length(predicted_names)
+  if (pairwise == TRUE) {
+    results <- rep(NA_real_, k + choose(k, 2))
+  } else {
+    results <- rep(NA_real_, k)
+  }
+  # Calculate metric for each source of predicted labels
+  for (i in seq_along(predicted_names)) {
+    results[[i]] <- metric(
+      dplyr::pull(resample, trusted_name), 
+      dplyr::pull(resample, predicted_names[[i]]), 
+      ...
+    )
+  }
+  names(results)[1:k] <- predicted_names
+  # If requested, add all pairwise differences
+  if (k > 1 && pairwise == TRUE) {
+    pair_diff <- outer(results[1:k], results[1:k], "-")
+    pair_diff <- pair_diff[upper.tri(pair_diff)]
+    results[(k + 1):length(results)] <- pair_diff
+    names(results)[(k + 1):length(results)] <- apply(
+      combn(predicted_names, 2), 
+      MARGIN = 2,
+      FUN = paste,
+      collapse = " - "
+    )
+  }
   results
 }
