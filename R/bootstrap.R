@@ -182,7 +182,7 @@ clusterboot_stat <- function(df, index, metric, pairwise,
   # If requested, add all pairwise differences
   if (k > 1 && pairwise == TRUE) {
     pair_diff <- outer(results[1:k], results[1:k], "-")
-    pair_diff <- pair_diff[upper.tri(pair_diff)]
+    pair_diff <- pair_diff[lower.tri(pair_diff)] * -1
     results[(k + 1):length(results)] <- pair_diff
     names(results)[(k + 1):length(results)] <- apply(
       combn(predicted_names, 2), 
@@ -232,7 +232,7 @@ singleboot_stat <- function(data, index, metric, pairwise,
   # If requested, add all pairwise differences
   if (k > 1 && pairwise == TRUE) {
     pair_diff <- outer(results[1:k], results[1:k], "-")
-    pair_diff <- pair_diff[upper.tri(pair_diff)]
+    pair_diff <- pair_diff[lower.tri(pair_diff)] * -1
     results[(k + 1):length(results)] <- pair_diff
     names(results)[(k + 1):length(results)] <- apply(
       combn(predicted_names, 2), 
