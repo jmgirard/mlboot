@@ -131,11 +131,13 @@ clusterboot <- function(bs_data, metric, nboot, interval, ...) {
   boot::boot(
     data = bs_data,
     statistic = clusterboot_stat,
-    R = nboot
+    R = nboot,
+    metric = metric,
+    ...
   )
 }
 
-clusterboot_stat <- function(df, index) {
+clusterboot_stat <- function(df, index, metric, ...) {
   resample <- df[index, ]
   resample <- tidyr::unnest(resample, cols = data)
   score1 <- metric(resample$y_true, resample$y_pred1, ...)
