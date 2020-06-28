@@ -36,3 +36,21 @@ sig_star <- function(lb, ub) {
   contains_zero <- (lb <= 0) & (ub >= 0)
   dplyr::if_else(contains_zero, "", "*")
 }
+
+#' @export
+tidy.mlboot <- function(x, ...) {
+
+  out <- tibble::tibble(
+    term = x$score_lab,
+    estimate = x$score_obs,
+    lower = x$score_cil,
+    upper = x$score_ciu,
+    p.signif = sig_star(x$score_cil, x$score_ciu)
+  )
+  
+  out
+}
+
+#' @importFrom generics tidy
+#' @export
+generics::tidy
