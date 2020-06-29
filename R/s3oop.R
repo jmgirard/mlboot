@@ -49,10 +49,10 @@ tidy.mlboot <- function(x, ...) {
     estimate = x$score_obs,
     lower = x$score_cil,
     upper = x$score_ciu,
-    p = x$pvalues
+    p = x$pvalue
   )
   
-  out <- dplyr::mutate(out, `p.signif` = sig_star(p))
+  out <- dplyr::mutate(out, p.signif = sig_star(p))
   
   out
 }
