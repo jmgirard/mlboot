@@ -13,7 +13,7 @@ print.mlboot <- function(x, digits = 3, ...) {
     "mlboot Results\n\n",
     "Sample:      \tN=", x$n_total, ", Clusters=", x$n_cluster, "\n",
     "Bootstrap:   \tQuantile, R=", x$n_boot, ", CI=", x$interval, "\n",
-    "Metric:      \t", x$metric, "\n\n",
+    "Metric:      \t", x$metric, ", Null=", x$null, "\n\n",
     sep = ""
   )
   # Print results
@@ -21,7 +21,7 @@ print.mlboot <- function(x, digits = 3, ...) {
     Estimate = round(x$score_obs, digits),
     Lower.CI = round(x$score_cil, digits),
     Upper.CI = round(x$score_ciu, digits),
-    p = round(x$pvalue, digits)
+    p = sprintf("%.3f", x$pvalue)
   )
   
   out <- dplyr::mutate(out, `p.signif` = sig_star(p))

@@ -19,12 +19,16 @@
 #'   can be developed as well.
 #' @param cluster Optional. The name of a single variable in \code{.data} that
 #'   contains the cluster membership of each object/observation.
+#' @param pairwise Optional. A logical indicating whether to estimate the
+#'   difference between all pairs of predicted labels (default = TRUE).
 #' @param n_boot Optional. A positive integer indicating how many bootstrap
 #'   resamples the confidence intervals should be estimated from (default =
 #'   2000).
 #' @param interval Optional. A number between 0 and 1 indicating the confidence
 #'   level of the confidence intervals to be estimated, such that 0.95 yields
 #'   95% confidence intervals (default = 0.95).
+#' @param null Optional. A single number to compare the bootstrap estimate to
+#'   when calculating p-values (default = 0).
 #' @param ... Optional. Additional arguments to pass along to the \code{metric}
 #'   function.
 #' @return A list containing the results and a description of the analysis.
@@ -46,12 +50,14 @@
 #'   applicable, their difference in each bootstrap resample}
 #' @export
 mlboot <- function(.data, trusted, predicted, metric, cluster, 
-                   pairwise = TRUE, n_boot = 2000, interval = 0.95, ...) {
+                   pairwise = TRUE, n_boot = 2000, interval = 0.95, 
+                   null = 0, ...) {
   
   assertthat::assert_that(assertthat::is.count(n_boot))
   assertthat::assert_that(interval > 0, interval < 1)
   assertthat::assert_that(is.function(metric))
   assertthat::assert_that(assertthat::is.flag(pairwise))
+  assertthat::assert_that(assertthat::is.number(null))
   
   bs_data <- dplyr::select(.data, {{trusted}}, {{predicted}}, {{cluster}})
   
@@ -131,11 +137,12 @@ mlboot <- function(.data, trusted, predicted, metric, cluster,
       n_cluster = n_cluster,
       n_boot = n_boot,
       interval = interval,
+      null = null,
       score_lab = score_lab,
       score_obs = score_obs,
       score_cil = score_cil,
       score_ciu = score_ciu,
-      pvalue = pvalue(bs_results$t),
+      pvalue = pvalue(bs_results$t, null),
       resamples = bs_results$t
     ),
     class = "mlboot"
@@ -245,10 +252,10 @@ singleboot_stat <- function(data, index, metric, pairwise,
   results
 }
 
-pvalue <- function(t) {
+pvalue <- function(t, null) {
   sapply(1:ncol(t), function(x) {
     distribution <- ecdf(t[, x])
-    qt0 <- distribution(0)
+    qt0 <- distribution(null)
     if (qt0 < 0.5) {
       2 * qt0
     }  else {

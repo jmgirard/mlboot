@@ -50,75 +50,85 @@ resampling.
 # Load the mlboot package
 library(mlboot)
 
+# Set random seed for reproducible results
+set.seed(2020)
+
 # Generate random numbers to simulate trusted labels
 ratings <- rnorm(n = 1000, mean = 50, sd = 10)
 
 # Perturb the trusted labels to simulate predictions
-model1 <- ratings + rnorm(n = 1000, mean = 10, sd = 5)
+model1 <- ratings + rnorm(n = 1000, mean = 10, sd = 10)
 
 # Combine variables into a dataframe
 dat <- data.frame(ratings, model1)
 
 # Estimate performance of the simulated predictions using the MAE performance metric
-mlboot(
-  .data = dat,
-  trusted = "ratings",
-  predicted = "model1",
-  metric = mean_absolute_error
-)
+results <- 
+  mlboot(
+    .data = dat,
+    trusted = "ratings",
+    predicted = "model1",
+    metric = mean_absolute_error
+  )
+
+results
 #> mlboot Results
 #> 
 #> Sample:          N=1000, Clusters=NA
-#> Bootstrap:       BCa, R=2000, CI=0.95
-#> Metric:          mean_absolute_error
+#> Bootstrap:       Quantile, R=2000, CI=0.95
+#> Metric:          mean_absolute_error, Null=0
 #> 
-#>          Estimate   Lower.CI   Upper.CI   Sig.
-#> model1     10.063       9.76      10.38      *
+#>          Estimate   Lower.CI   Upper.CI       p   p.signif
+#> model1     11.661     11.149     12.157   0.000        ***
 ```
 
 The output shows that the observed performance (MAE) in the simulated
-sample was 10.063. This is quite close to the perturbation of 10 that we
+sample was 12. This is quite close to the perturbation of 10 that we
 added to create the labels, which is a good sign that our metric
 function is working properly. The output also shows a 95% confidence
 interval around the observed sample statistic; thus, we can be quite
 confident that the “true” population value of the performance metric is
-between 9.749 and 10.349. Given that our sample of 1000 videos is
-arbitrary, repeating the experiment with another 1000 videos would
-likely result in a different performance score - but the confidence
-interval suggests that the MAE shouldn’t vary more than 0.3 or so.
+between 11.149 and 12.157. The p-value of 0.000 suggests that this MAE
+scores is significantly different from zero.
 
 ### Estimating and comparing the performance of two models
 
-Now let’s say we develop another model that is much more accurate. We
-can use a very similar approach (and indeed the same function call, with
+Now let’s say we develop another model that is more accurate. We can use
+a very similar approach (and indeed the same function call, with
 additional arguments) to estimate the performance of this second model
 and assess the degree to which the models differ in performance.
 
 ``` r
+# Set random seed for reproducible results
+set.seed(2020)
+
 # Perturb the trusted labels to a lesser degree to simulate better predictions
-model2 <- ratings + rnorm(n = 1000, mean = 5, sd = 5)
+model2 <- ratings + rnorm(n = 1000, mean = 8.5, sd = 10)
 
 # Append to existing dataframe
 dat2 <- cbind(dat, model2)
 
 # Estimate performance of both models and compare them using the MAE metric
-mlboot(
-  .data = dat2,
-  trusted = "ratings",
-  predicted = c("model1", "model2"),
-  metric = mean_absolute_error,
-  pairwise = TRUE
-)
+results2 <- 
+  mlboot(
+    .data = dat2,
+    trusted = "ratings",
+    predicted = c("model1", "model2"),
+    metric = mean_absolute_error,
+    pairwise = TRUE
+  )
+
+results2
 #> mlboot Results
 #> 
 #> Sample:          N=1000, Clusters=NA
-#> Bootstrap:       BCa, R=2000, CI=0.95
-#> Metric:          mean_absolute_error
+#> Bootstrap:       Quantile, R=2000, CI=0.95
+#> Metric:          mean_absolute_error, Null=0
 #> 
-#>                   Estimate   Lower.CI   Upper.CI   Sig.
-#> model1              10.063      9.770     10.345      *
-#> model2               5.925      5.690      6.181      *
-#> model1 - model2      4.138      3.738      4.484      *
+#>                   Estimate   Lower.CI   Upper.CI       p   p.signif
+#> model1              11.661     11.150     12.164   0.000        ***
+#> model2              10.694     10.220     11.192   0.000        ***
+#> model1 - model2      0.967      0.266      1.624   0.006         **
 ```
 
 The output shows the same observed performance for the first model,
@@ -126,15 +136,14 @@ although the confidence interval is slightly different due to the
 stochastic nature of resampling. (If more consistent confidence interval
 bounds are desired, additional bootstrap resamples can be requested
 using the `nboot` argument.) The second model had an observed
-performance score of 5.925 which is indeed lower than that of the first
-model. To determine whether this difference is statistically significant
-(i.e., likely to be replicated with another sample), we can estimate the
-average difference between the performance scores of the models. The
-observed difference was 4.138 and the confidence interval extends from
-3.738 to 4.484 Because the confidence interval does not include zero
-(and indeed is not particularly close to zero), we can conclude with 95%
-confidence that the second model has a lower mean absolute error than
-the first model.
+performance score of 10.694 which is indeed lower than that of the first
+model. To determine whether this difference is statistically
+significant, we can estimate the average difference between the
+performance scores of the models. The observed difference was 0.967 and
+the confidence interval extends from 0.266 to 1.624. Because the
+confidence interval does not include zero and the p-value is less than
+0.05, we can conclude with 95% confidence that the second model has a
+lower mean absolute error than the first model.
 
 ### Estimating and comparing the performance of many models
 
@@ -142,38 +151,44 @@ The same approach can be applied to any number of models. When `pairwise
 = TRUE`, all pairs of models will be compared.
 
 ``` r
-# Perturb the trusted labels to a lesser degree to simulate better predictions
-model3 <- ratings + rnorm(n = 1000, mean = 10, sd = 5)
-model4 <- ratings + rnorm(n = 1000, mean = 5, sd = 5)
+# Set random seed for reproducible results
+set.seed(2020)
+
+# Perturb the trusted labels to different degrees
+model3 <- ratings + rnorm(n = 1000, mean = 10, sd = 10)
+model4 <- ratings + rnorm(n = 1000, mean = 5, sd = 10)
 
 # Append to existing dataframe
 dat3 <- cbind(dat2, model3, model4)
 
 # Estimate performance of both models and compare them using the MAE metric
-mlboot(
-  .data = dat3,
-  trusted = "ratings",
-  predicted = c("model1", "model2", "model3", "model4"),
-  metric = mean_absolute_error,
-  pairwise = TRUE
-)
+results3 <- 
+  mlboot(
+    .data = dat3,
+    trusted = "ratings",
+    predicted = c("model1", "model2", "model3", "model4"),
+    metric = mean_absolute_error,
+    pairwise = TRUE
+  )
+
+results3
 #> mlboot Results
 #> 
 #> Sample:          N=1000, Clusters=NA
-#> Bootstrap:       BCa, R=2000, CI=0.95
-#> Metric:          mean_absolute_error
+#> Bootstrap:       Quantile, R=2000, CI=0.95
+#> Metric:          mean_absolute_error, Null=0
 #> 
-#>                   Estimate   Lower.CI   Upper.CI   Sig.
-#> model1              10.063      9.764     10.363      *
-#> model2               5.925      5.675      6.174      *
-#> model3              10.186      9.882     10.490      *
-#> model4               5.859      5.606      6.110      *
-#> model1 - model2      4.138      3.740      4.520      *
-#> model1 - model3     -0.123     -0.558      0.317       
-#> model1 - model4     -4.261     -4.638     -3.852      *
-#> model2 - model3      4.204      3.800      4.603      *
-#> model2 - model4      0.066     -0.256      0.426       
-#> model3 - model4      4.327      3.934      4.729      *
+#>                   Estimate   Lower.CI   Upper.CI       p   p.signif
+#> model1              11.661     11.149     12.157   0.000        ***
+#> model2              10.694     10.225     11.193   0.000        ***
+#> model3              11.640     11.146     12.164   0.000        ***
+#> model4               8.855      8.437      9.280   0.000        ***
+#> model1 - model2      0.967      0.269      1.635   0.007         **
+#> model1 - model3      0.021     -0.698      0.707   0.954           
+#> model1 - model4      2.806      2.557      3.044   0.000        ***
+#> model2 - model3     -0.946     -1.015     -0.874   0.000        ***
+#> model2 - model4      1.839      1.241      2.500   0.000        ***
+#> model3 - model4      2.784      2.164      3.472   0.000        ***
 ```
 
 ### Using the cluster bootstrap for hierarchical data
@@ -186,63 +201,51 @@ dependency would result in biased estimates, so we need to account for
 it in some way. Although hierarchical resampling is an active area of
 research, two recent studies (Field & Welsh, 2007; Ren et al. 2010)
 suggest that the cluster bootstrap is an accurate and powerful approach
-to this issue. By supplying a vector indicating cluster membership for
+to this issue. By supplying a variable indicating cluster membership for
 each testing example, `mlboot()` can implement the cluster bootstrap
 procedure. Note that this approach may lead to inaccuracies when the
 number of clusters is low (e.g., fewer than 20).
 
 ``` r
+# Set random seed for reproducible results
+set.seed(2020)
+
 # Assume the examples come from 50 different clusters corresponding to persons
 person <- rep(1:50, each = 20)
 
 # Generate random numbers to simulate trusted labels
-ratings <- rnorm(n = 1000, mean = 20 + person, sd = 10)
+ratings2 <- rnorm(n = 1000, mean = 20 + person, sd = 10)
 
 # Perturb the trusted labels to simulate predictions
-model1 <- ratings + rnorm(n = 1000, mean = 10 - person, sd = 5)
-model2 <- ratings + rnorm(n = 1000, mean = 5 - person, sd = 5)
+model4 <- ratings2 + rnorm(n = 1000, mean = 10 - person, sd = 10)
+model5 <- ratings2 + rnorm(n = 1000, mean = 9 - person, sd = 10)
 
 # Combine variables into dataframe
-dat3 <- data.frame(person, ratings, model1, model2)
+dat4 <- data.frame(person, ratings2, model4, model5)
 
 # Estimate and compare the models using the cluster bootstrap
-mlboot(
-  .data = dat3,
-  trusted = "ratings",
-  predicted = c("model1", "model2"),
-  metric = mean_absolute_error,
-  cluster = person,
-  pairwise = TRUE
-)
-#> mlboot Results
-#> 
-#> Sample:          N=1000, Clusters=50
-#> Bootstrap:       BCa, R=2000, CI=0.95
-#> Metric:          mean_absolute_error
-#> 
-#>                   Estimate   Lower.CI   Upper.CI   Sig.
-#> model1              17.926     14.734     21.427      *
-#> model2              21.478     17.831     25.326      *
-#> model1 - model2     -3.552     -4.212     -2.728      *
-```
-
-### Visualizing bootstrap results
-
-``` r
-results <- 
+results4 <- 
   mlboot(
-    .data = dat3,
-    trusted = "ratings",
-    predicted = c("model1", "model2"),
+    .data = dat4,
+    trusted = "ratings2",
+    predicted = c("model4", "model5"),
     metric = mean_absolute_error,
     cluster = person,
     pairwise = TRUE
   )
 
-hist(results$resamples[, 3])
+results4
+#> mlboot Results
+#> 
+#> Sample:          N=1000, Clusters=50
+#> Bootstrap:       Quantile, R=2000, CI=0.95
+#> Metric:          mean_absolute_error, Null=0
+#> 
+#>                   Estimate   Lower.CI   Upper.CI       p   p.signif
+#> model4              19.339     16.394     22.524   0.000        ***
+#> model5              19.829     16.897     22.899   0.000        ***
+#> model4 - model5     -0.490     -1.236      0.310   0.219
 ```
-
-<img src="man/figures/README-histogram-1.png" width="100%" />
 
 ## Code of Conduct
 

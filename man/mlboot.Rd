@@ -13,6 +13,7 @@ mlboot(
   pairwise = TRUE,
   n_boot = 2000,
   interval = 0.95,
+  null = 0,
   ...
 )
 }
@@ -36,6 +37,9 @@ can be developed as well.}
 \item{cluster}{Optional. The name of a single variable in \code{.data} that
 contains the cluster membership of each object/observation.}
 
+\item{pairwise}{Optional. A logical indicating whether to estimate the
+difference between all pairs of predicted labels (default = TRUE).}
+
 \item{n_boot}{Optional. A positive integer indicating how many bootstrap
 resamples the confidence intervals should be estimated from (default =
 2000).}
@@ -43,6 +47,9 @@ resamples the confidence intervals should be estimated from (default =
 \item{interval}{Optional. A number between 0 and 1 indicating the confidence
 level of the confidence intervals to be estimated, such that 0.95 yields
 95\% confidence intervals (default = 0.95).}
+
+\item{null}{Optional. A single number to compare the bootstrap estimate to
+when calculating p-values (default = 0).}
 
 \item{...}{Optional. Additional arguments to pass along to the \code{metric}
 function.}

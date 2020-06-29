@@ -12,6 +12,7 @@ knitr::opts_chunk$set(
   out.width = "100%"
 )
 ```
+
 # mlboot
 
 The goal of *mlboot* is to provide a powerful, flexible, and user-friendly way to estimate and compare the performance of machine learning (and other predictive) models using bootstrap resampling. It was created in collaboration by [Jeffrey Girard](https://jmgirard.com/) and [Zhun Liu](http://justin1904.github.io/); this version for R is maintained by Jeffrey Girard and a similar version for Python is maintained by Zhun Liu.
@@ -36,7 +37,7 @@ We can simulate some simple labels and predictions to demonstrate this. Let's sa
 # Load the mlboot package
 library(mlboot)
 
-# Set random seed for consistent results
+# Set random seed for reproducible results
 set.seed(2020)
 
 # Generate random numbers to simulate trusted labels
@@ -60,13 +61,13 @@ results <-
 results
 ```
 
-The output shows that the observed performance (MAE) in the simulated sample was `r round(results$score_obs)`. This is quite close to the perturbation of 10 that we added to create the labels, which is a good sign that our metric function is working properly. The output also shows a 95\% confidence interval around the observed sample statistic; thus, we can be quite confident that the "true" population value of the performance metric is between `r round(results$score_cil, 3)` and `r round(results$score_ciu, 3)`. The p-value of `r round(results$pvalue, 3)` suggests that this MAE scores is significantly different from zero.
+The output shows that the observed performance (MAE) in the simulated sample was `r round(results$score_obs)`. This is quite close to the perturbation of 10 that we added to create the labels, which is a good sign that our metric function is working properly. The output also shows a 95\% confidence interval around the observed sample statistic; thus, we can be quite confident that the "true" population value of the performance metric is between `r round(results$score_cil, 3)` and `r round(results$score_ciu, 3)`. The p-value of `r sprintf("%.3f", results$pvalue)` suggests that this MAE scores is significantly different from zero.
 
 ### Estimating and comparing the performance of two models
-Now let's say we develop another model that is much more accurate. We can use a very similar approach (and indeed the same function call, with additional arguments) to estimate the performance of this second model and assess the degree to which the models differ in performance.
+Now let's say we develop another model that is more accurate. We can use a very similar approach (and indeed the same function call, with additional arguments) to estimate the performance of this second model and assess the degree to which the models differ in performance.
 
 ```{r}
-# Set random seed for consistent results
+# Set random seed for reproducible results
 set.seed(2020)
 
 # Perturb the trusted labels to a lesser degree to simulate better predictions
@@ -88,71 +89,67 @@ results2 <-
 results2
 ```
 
-The output shows the same observed performance for the first model, although the confidence interval is slightly different due to the stochastic nature of resampling. (If more consistent confidence interval bounds are desired, additional bootstrap resamples can be requested using the `nboot` argument.) The second model had an observed performance score of 5.925 which is indeed lower than that of the first model. To determine whether this difference is statistically significant (i.e., likely to be replicated with another sample), we can estimate the average difference between the performance scores of the models. The observed difference was 4.138 and the confidence interval extends from 3.738 to 4.484 Because the confidence interval does not include zero (and indeed is not particularly close to zero), we can conclude with 95\% confidence that the second model has a lower mean absolute error than the first model.
+The output shows the same observed performance for the first model, although the confidence interval is slightly different due to the stochastic nature of resampling. (If more consistent confidence interval bounds are desired, additional bootstrap resamples can be requested using the `nboot` argument.) The second model had an observed performance score of `r round(results2$score_obs[[2]], 3)` which is indeed lower than that of the first model. To determine whether this difference is statistically significant, we can estimate the average difference between the performance scores of the models. The observed difference was `r round(results2$score_obs[[3]], 3)` and the confidence interval extends from `r round(results2$score_cil[[3]], 3)` to `r round(results2$score_ciu[[3]], 3)`. Because the confidence interval does not include zero and the p-value is less than 0.05, we can conclude with 95\% confidence that the second model has a lower mean absolute error than the first model.
 
 ### Estimating and comparing the performance of many models
 The same approach can be applied to any number of models. When `pairwise = TRUE`, all pairs of models will be compared.
 
 ```{r}
-# Perturb the trusted labels to a lesser degree to simulate better predictions
-model3 <- ratings + rnorm(n = 1000, mean = 10, sd = 5)
-model4 <- ratings + rnorm(n = 1000, mean = 5, sd = 5)
+# Set random seed for reproducible results
+set.seed(2020)
+
+# Perturb the trusted labels to different degrees
+model3 <- ratings + rnorm(n = 1000, mean = 10, sd = 10)
+model4 <- ratings + rnorm(n = 1000, mean = 5, sd = 10)
 
 # Append to existing dataframe
 dat3 <- cbind(dat2, model3, model4)
 
 # Estimate performance of both models and compare them using the MAE metric
-mlboot(
-  .data = dat3,
-  trusted = "ratings",
-  predicted = c("model1", "model2", "model3", "model4"),
-  metric = mean_absolute_error,
-  pairwise = TRUE
-)
+results3 <- 
+  mlboot(
+    .data = dat3,
+    trusted = "ratings",
+    predicted = c("model1", "model2", "model3", "model4"),
+    metric = mean_absolute_error,
+    pairwise = TRUE
+  )
+
+results3
 ```
 
 ### Using the cluster bootstrap for hierarchical data
-It is common in many areas of applied machine learning to have testing sets that are hierarchical in structure. For example, there may be multiple testing examples that are clustered (e.g., come from the same individuals or groups) and therefore are not independent. Ignoring this dependency would result in biased estimates, so we need to account for it in some way. Although hierarchical resampling is an active area of research, two recent studies (Field & Welsh, 2007; Ren et al. 2010) suggest that the cluster bootstrap is an accurate and powerful approach to this issue. By supplying a vector indicating cluster membership for each testing example, `mlboot()` can implement the cluster bootstrap procedure. Note that this approach may lead to inaccuracies when the number of clusters is low (e.g., fewer than 20). 
+It is common in many areas of applied machine learning to have testing sets that are hierarchical in structure. For example, there may be multiple testing examples that are clustered (e.g., come from the same individuals or groups) and therefore are not independent. Ignoring this dependency would result in biased estimates, so we need to account for it in some way. Although hierarchical resampling is an active area of research, two recent studies (Field & Welsh, 2007; Ren et al. 2010) suggest that the cluster bootstrap is an accurate and powerful approach to this issue. By supplying a variable indicating cluster membership for each testing example, `mlboot()` can implement the cluster bootstrap procedure. Note that this approach may lead to inaccuracies when the number of clusters is low (e.g., fewer than 20). 
 
 ```{r}
+# Set random seed for reproducible results
+set.seed(2020)
+
 # Assume the examples come from 50 different clusters corresponding to persons
 person <- rep(1:50, each = 20)
 
 # Generate random numbers to simulate trusted labels
-ratings <- rnorm(n = 1000, mean = 20 + person, sd = 10)
+ratings2 <- rnorm(n = 1000, mean = 20 + person, sd = 10)
 
 # Perturb the trusted labels to simulate predictions
-model1 <- ratings + rnorm(n = 1000, mean = 10 - person, sd = 5)
-model2 <- ratings + rnorm(n = 1000, mean = 5 - person, sd = 5)
+model4 <- ratings2 + rnorm(n = 1000, mean = 10 - person, sd = 10)
+model5 <- ratings2 + rnorm(n = 1000, mean = 9 - person, sd = 10)
 
 # Combine variables into dataframe
-dat3 <- data.frame(person, ratings, model1, model2)
+dat4 <- data.frame(person, ratings2, model4, model5)
 
 # Estimate and compare the models using the cluster bootstrap
-mlboot(
-  .data = dat3,
-  trusted = "ratings",
-  predicted = c("model1", "model2"),
-  metric = mean_absolute_error,
-  cluster = person,
-  pairwise = TRUE
-)
-```
-
-### Visualizing bootstrap results
-
-```{r histogram}
-results <- 
+results4 <- 
   mlboot(
-    .data = dat3,
-    trusted = "ratings",
-    predicted = c("model1", "model2"),
+    .data = dat4,
+    trusted = "ratings2",
+    predicted = c("model4", "model5"),
     metric = mean_absolute_error,
     cluster = person,
     pairwise = TRUE
   )
 
-hist(results$resamples[, 3])
+results4
 ```
 
 ## Code of Conduct
