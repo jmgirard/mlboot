@@ -11,7 +11,6 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
-set.seed(2019)
 ```
 # mlboot
 
@@ -37,44 +36,56 @@ We can simulate some simple labels and predictions to demonstrate this. Let's sa
 # Load the mlboot package
 library(mlboot)
 
+# Set random seed for consistent results
+set.seed(2020)
+
 # Generate random numbers to simulate trusted labels
 ratings <- rnorm(n = 1000, mean = 50, sd = 10)
 
 # Perturb the trusted labels to simulate predictions
-model1 <- ratings + rnorm(n = 1000, mean = 10, sd = 5)
+model1 <- ratings + rnorm(n = 1000, mean = 10, sd = 10)
 
 # Combine variables into a dataframe
 dat <- data.frame(ratings, model1)
 
 # Estimate performance of the simulated predictions using the MAE performance metric
-mlboot(
-  .data = dat,
-  trusted = "ratings",
-  predicted = "model1",
-  metric = mean_absolute_error
-)
+results <- 
+  mlboot(
+    .data = dat,
+    trusted = "ratings",
+    predicted = "model1",
+    metric = mean_absolute_error
+  )
+
+results
 ```
 
-The output shows that the observed performance (MAE) in the simulated sample was 10.063. This is quite close to the perturbation of 10 that we added to create the labels, which is a good sign that our metric function is working properly. The output also shows a 95% confidence interval around the observed sample statistic; thus, we can be quite confident that the "true" population value of the performance metric is between 9.749 and 10.349. Given that our sample of 1000 videos is arbitrary, repeating the experiment with another 1000 videos would likely result in a different performance score - but the confidence interval suggests that the MAE shouldn't vary more than 0.3 or so.
+The output shows that the observed performance (MAE) in the simulated sample was `r round(results$score_obs)`. This is quite close to the perturbation of 10 that we added to create the labels, which is a good sign that our metric function is working properly. The output also shows a 95\% confidence interval around the observed sample statistic; thus, we can be quite confident that the "true" population value of the performance metric is between `r round(results$score_cil, 3)` and `r round(results$score_ciu, 3)`. The p-value of `r round(results$pvalue, 3)` suggests that this MAE scores is significantly different from zero.
 
 ### Estimating and comparing the performance of two models
 Now let's say we develop another model that is much more accurate. We can use a very similar approach (and indeed the same function call, with additional arguments) to estimate the performance of this second model and assess the degree to which the models differ in performance.
 
 ```{r}
+# Set random seed for consistent results
+set.seed(2020)
+
 # Perturb the trusted labels to a lesser degree to simulate better predictions
-model2 <- ratings + rnorm(n = 1000, mean = 5, sd = 5)
+model2 <- ratings + rnorm(n = 1000, mean = 8.5, sd = 10)
 
 # Append to existing dataframe
 dat2 <- cbind(dat, model2)
 
 # Estimate performance of both models and compare them using the MAE metric
-mlboot(
-  .data = dat2,
-  trusted = "ratings",
-  predicted = c("model1", "model2"),
-  metric = mean_absolute_error,
-  pairwise = TRUE
-)
+results2 <- 
+  mlboot(
+    .data = dat2,
+    trusted = "ratings",
+    predicted = c("model1", "model2"),
+    metric = mean_absolute_error,
+    pairwise = TRUE
+  )
+
+results2
 ```
 
 The output shows the same observed performance for the first model, although the confidence interval is slightly different due to the stochastic nature of resampling. (If more consistent confidence interval bounds are desired, additional bootstrap resamples can be requested using the `nboot` argument.) The second model had an observed performance score of 5.925 which is indeed lower than that of the first model. To determine whether this difference is statistically significant (i.e., likely to be replicated with another sample), we can estimate the average difference between the performance scores of the models. The observed difference was 4.138 and the confidence interval extends from 3.738 to 4.484 Because the confidence interval does not include zero (and indeed is not particularly close to zero), we can conclude with 95\% confidence that the second model has a lower mean absolute error than the first model.

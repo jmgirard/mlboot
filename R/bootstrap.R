@@ -115,12 +115,12 @@ mlboot <- function(.data, trusted, predicted, metric, cluster,
     bs_ci <- boot::boot.ci(
       boot.out = bs_results,
       conf = interval,
-      type = "bca",
+      type = "perc",
       index = i
     )
     score_obs[[i]] <- bs_ci$t0
-    score_cil[[i]] <- bs_ci$bca[[4]]
-    score_ciu[[i]] <- bs_ci$bca[[5]]
+    score_cil[[i]] <- bs_ci$perc[[4]]
+    score_ciu[[i]] <- bs_ci$perc[[5]]
   }
   
   ## Create output object
@@ -135,6 +135,7 @@ mlboot <- function(.data, trusted, predicted, metric, cluster,
       score_obs = score_obs,
       score_cil = score_cil,
       score_ciu = score_ciu,
+      pvalue = pvalue(bs_results$t),
       resamples = bs_results$t
     ),
     class = "mlboot"
@@ -242,4 +243,16 @@ singleboot_stat <- function(data, index, metric, pairwise,
     )
   }
   results
+}
+
+pvalue <- function(t) {
+  sapply(1:ncol(t), function(x) {
+    distribution <- ecdf(t[, x])
+    qt0 <- distribution(0)
+    if (qt0 < 0.5) {
+      2 * qt0
+    }  else {
+      2 * (1 - qt0)
+    }
+  })
 }
